@@ -177,7 +177,6 @@ pub struct Permission {
 
 #[derive(Default)]
 pub struct AiConnection {
-    #[cfg(windows)]
     pub listener: Option<sepika_ai_connection::listener::Listener>,
     pub pending: Option<String>,
     pub permission: Option<Permission>,

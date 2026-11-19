@@ -2,7 +2,7 @@ use super::*;
 use sepika_app::app::study::Location;
 use sepika_core::ids::{ElemId, SectionId};
 
-#[cfg(all(windows, feature = "gui"))]
+#[cfg(feature = "gui")]
 #[path = "full_model_study_wire.rs"]
 mod wire;
 

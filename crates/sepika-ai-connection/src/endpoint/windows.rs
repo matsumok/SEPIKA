@@ -16,6 +16,20 @@ use windows_sys::Win32::Storage::FileSystem::{
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
 const CLIENT_ACCESS: u32 = FILE_GENERIC_READ | FILE_WRITE_DATA | FILE_WRITE_ATTRIBUTES;
+const PREFIX: &str = r"\\.\pipe\sepika-gui-";
+
+pub type Client = NamedPipeClient;
+
+/// 有効化ごとに異なるランダムなパイプ名を返します。
+pub fn new_name() -> io::Result<String> {
+    Ok(format!("{PREFIX}{}", uuid::Uuid::new_v4()))
+}
+
+/// GUIが生成する形式のローカルSEPIKAパイプ名であれば真を返します。
+pub fn is_gui_endpoint(name: &str) -> bool {
+    name.strip_prefix(PREFIX)
+        .is_some_and(|rest| !rest.contains(['\\', '/']))
+}
 
 fn wide(value: &str) -> Vec<u16> {
     value.encode_utf16().chain(Some(0)).collect()
@@ -90,6 +104,12 @@ pub fn create(name: &str) -> io::Result<NamedPipeServer> {
         LocalFree(descriptor);
         result
     }
+}
+
+/// 一つのクライアント接続を待ち、そのパイプを通信路として返します。
+pub async fn accept(server: NamedPipeServer) -> io::Result<NamedPipeServer> {
+    server.connect().await?;
+    Ok(server)
 }
 
 /// パイプ作成権限と偽装権限を要求せず、指定GUIへ接続します。

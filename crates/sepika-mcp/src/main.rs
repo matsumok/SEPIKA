@@ -16,13 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let pipe = std::env::args()
             .nth(2)
             .ok_or("GUIの接続先を指定してください")?;
-        #[cfg(windows)]
         return sepika_mcp::gui_bridge::run(pipe).await;
-        #[cfg(not(windows))]
-        {
-            let _ = pipe;
-            return Err("GUIへのローカル接続はWindowsで利用できます".into());
-        }
     }
     let model = match std::env::args().nth(1) {
         Some(path) => sepika_io::ovika::load_ovika(std::path::Path::new(&path))?.model,

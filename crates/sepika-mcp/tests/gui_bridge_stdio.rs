@@ -1,4 +1,4 @@
-#![cfg(all(windows, feature = "mcp"))]
+#![cfg(feature = "mcp")]
 use serde_json::{json, Value};
 use std::{
     io::{BufRead, BufReader, Write},

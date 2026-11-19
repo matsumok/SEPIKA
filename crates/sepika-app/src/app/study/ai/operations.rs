@@ -134,28 +134,23 @@ impl App {
     #[cfg(feature = "gui")]
     pub(crate) fn ai_connection_panel(&mut self, ui: &mut egui::Ui) {
         ui.collapsing("外部AIへのローカル接続",|ui| {
-            ui.label("接続手順: ①依頼を保存し依頼文をコピー ②ローカル接続を有効化 ③外部MCPクライアントにsepika-mcp.exeとコピーした --gui-pipe 引数を設定 ④クライアントから接続し、ここで検討と許可を確認 ⑤コピーした依頼文をクライアントへ渡す。依頼開始・成果提出は実際の受理後に表示します。");
+            ui.label("接続手順: ①依頼を保存し依頼文をコピー ②ローカル接続を有効化 ③外部MCPクライアントにsepika-mcpとコピーした --gui-pipe 引数を設定 ④クライアントから接続し、ここで検討と許可を確認 ⑤コピーした依頼文をクライアントへ渡す。依頼開始・成果提出は実際の受理後に表示します。");
             ui.label("外部クライアントがクラウドAIを利用すると、取得した情報が外部送信され得ます。クライアント側の保存・送信はSEPIKAの管理範囲外です。");
             ui.label("読取範囲: 許可した検討の基準・比較案の全体モデル、候補断面、条件、保持結果。固定対象以外の情報も含みます。");
             ui.label("編集範囲: 指定検討の比較案にある固定鉄骨大梁への既存有効断面の割当だけ。本案更新・採用は人が行います。");
             ui.label("クライアント切断で接続先と許可を終了します。再接続は手動で再有効化し、新しい起動引数とGUI承認を使ってください。受理済み計算は停止しません。");
-            #[cfg(windows)]
-            {
-                if self.ai_connection.listener.is_none() {
-                    if ui.add_enabled(!self.studies.items.is_empty(),egui::Button::new("ローカル接続を有効化")).clicked() {
-                        if let Err(reason)=self.enable_ai_connection() {self.report_error(reason);}
-                    }
-                } else {
-                    ui.strong("ローカル接続: 有効");
-                    let endpoint=self.ai_connection.listener.as_ref().unwrap().name.clone();
-                    ui.label(format!("接続先: {endpoint}"));
-                    if ui.button("MCP起動引数をコピー").clicked() {ui.ctx().copy_text(format!("sepika-mcp --gui-pipe {endpoint}"));}
-                    if ui.button("接続を解除").clicked() {self.disconnect_ai_connection();}
-                    ui.label("解除後の新規要求は拒否します。受理済み計算は停止しません。");
+            if self.ai_connection.listener.is_none() {
+                if ui.add_enabled(!self.studies.items.is_empty(),egui::Button::new("ローカル接続を有効化")).clicked() {
+                    if let Err(reason)=self.enable_ai_connection() {self.report_error(reason);}
                 }
+            } else {
+                ui.strong("ローカル接続: 有効");
+                let endpoint=self.ai_connection.listener.as_ref().unwrap().name.clone();
+                ui.label(format!("接続先: {endpoint}"));
+                if ui.button("MCP起動引数をコピー").clicked() {ui.ctx().copy_text(format!("sepika-mcp --gui-pipe {endpoint}"));}
+                if ui.button("接続を解除").clicked() {self.disconnect_ai_connection();}
+                ui.label("解除後の新規要求は拒否します。受理済み計算は停止しません。");
             }
-            #[cfg(not(windows))]
-            ui.label("ローカル接続はWindowsで利用できます。");
             if !self.studies.items.is_empty() {
                 self.ai_connection.selected_study=self.ai_connection.selected_study.min(self.studies.items.len()-1);
                 egui::ComboBox::from_id_salt("ai-permission-study").selected_text(&self.studies.items[self.ai_connection.selected_study].purpose).show_ui(ui,|ui|{
@@ -183,7 +178,6 @@ impl App {
         self.studies.items.get(study).map(|s| &s.ai)
     }
 
-    #[cfg(windows)]
     pub fn enable_ai_connection(&mut self) -> Result<String, String> {
         self.disconnect_ai_connection();
         let listener =
@@ -233,7 +227,6 @@ impl App {
         Ok(())
     }
 
-    #[cfg(windows)]
     pub fn poll_ai_connection(&mut self) {
         self.sync_ai_jobs();
         loop {

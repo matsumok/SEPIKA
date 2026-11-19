@@ -2125,11 +2125,10 @@ fn rejected_scopes_versions_targets_and_replays_leave_models_unchanged() {
     );
 }
 
-#[cfg(windows)]
 #[test]
 fn real_pipe_edits_existing_comparison_calculates_and_submits_the_same_gui_evidence() {
     use sepika_ai_connection::{
-        pipe,
+        endpoint,
         protocol::{read_frame, write_frame},
     };
     use tokio::io::BufReader;
@@ -2137,7 +2136,7 @@ fn real_pipe_edits_existing_comparison_calculates_and_submits_the_same_gui_evide
     let endpoint = app.enable_ai_connection().unwrap();
     let runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.block_on(async {
-        async fn exchange(app:&mut App,reader:&mut BufReader<tokio::net::windows::named_pipe::NamedPipeClient>,request:&Request)->Response {
+        async fn exchange(app:&mut App,reader:&mut BufReader<endpoint::Client>,request:&Request)->Response {
             write_frame(reader.get_mut(),request).await.unwrap();
             let response=read_frame::<Response>(reader);
             tokio::pin!(response);
@@ -2156,7 +2155,7 @@ fn real_pipe_edits_existing_comparison_calculates_and_submits_the_same_gui_evide
                 }
             }
         }
-        let mut reader=BufReader::new(pipe::connect(&endpoint).unwrap());
+        let mut reader=BufReader::new(endpoint::connect(&endpoint).unwrap());
         let connect:Request=serde_json::from_value(json!({"version":1,"id":"connect-1","operation":"connect"})).unwrap();
         assert_eq!(accepted(exchange(&mut app,&mut reader,&connect).await)["status"],"awaiting_gui_approval");
         app.approve_ai_connection(s,Mode::Comparison,true).unwrap();
@@ -2227,11 +2226,11 @@ fn real_pipe_edits_existing_comparison_calculates_and_submits_the_same_gui_evide
             tokio::time::sleep(std::time::Duration::from_millis(2)).await;
         }
         assert!(app.ai_connection.permission.is_none());
-        assert!(pipe::connect(&endpoint).is_err());
+        assert!(endpoint::connect(&endpoint).is_err());
         assert_eq!(app.handle_ai_request("old",old_result.clone()).error.unwrap().code,"permission_denied");
         let new_endpoint=app.enable_ai_connection().unwrap();
         assert_ne!(endpoint,new_endpoint);
-        let mut reader=BufReader::new(pipe::connect(&new_endpoint).unwrap());
+        let mut reader=BufReader::new(endpoint::connect(&new_endpoint).unwrap());
         assert_eq!(accepted(exchange(&mut app,&mut reader,&connect).await)["status"],"awaiting_gui_approval");
         assert_eq!(exchange(&mut app,&mut reader,&old_result).await.error.unwrap().code,"permission_denied");
         app.approve_ai_connection(s,Mode::Review,true).unwrap();

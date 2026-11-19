@@ -16,7 +16,11 @@
 | 全体モデルの実通信 | `cargo test -p sepika-app --features gui --test full_model wire --locked` | 1成功 |
 | 静的解析 | `cargo clippy -p sepika-ai-connection -p sepika-mcp -p sepika-app --features sepika-mcp/mcp,sepika-app/gui --all-targets --locked -- -D warnings` | Linux向け・`--target x86_64-pc-windows-gnu` とも成功 |
 
-Unix接続先の単体テストでは、同じUIDの往復とEOF、同名パスの排他作成、受付後と未接続破棄後の接続先の不在、本人専用でないディレクトリの拒否、GUIが生成する形式以外のパスの拒否を確認した。Windows向けはクロスの静的解析だけで、Windows上のテスト実行はCIのWindowsジョブに委ねる。
+Unix接続先の単体テストでは、同じUIDの往復とEOF、同名パスの排他作成、受付後と未接続破棄後の接続先の不在、本人専用でないディレクトリの拒否、GUIが生成する形式以外のパスの拒否を確認した。Windows向けのローカル確認はクロスの静的解析だけである。表の実行の後、受付時に相手のUIDを取得できない接続を閉じて待受を続けるよう修正し、共有通信のテスト（6件成功）と静的解析を再実行した。
+
+## CI
+
+ローカル実行とは別に、フォーク上の確認用PRでコミット `7b71244a` のCIを実行し、Windows通信ジョブ（名前付きパイプの実通信・GUI検討・MCP stdio中継）を含む全ジョブの成功を確認した。Unixソケットの実通信テストを含むLinuxのテスト構成も成功した。ジョブログの本文はサンドボックスから取得できず、個々のテスト名の出力は確認していない。
 
 ## 実接続
 

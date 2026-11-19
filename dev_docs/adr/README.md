@@ -173,6 +173,7 @@ Squid-n の重要な設計判断の正本。用語の意味はルートの [CONT
 | [0116](0116-steel-girder-slab-composite-applicability.md) | accepted | H形鋼大梁の合成剛性を床板主材料と設計者の明示確認で制限する |
 
 | [0117](0117-unequal-built-h-strong-axis-shear.md) | accepted | 上下のフランジ厚が異なる組立H形鋼の強軸せん断を未算定とする |
+| [0118](0118-gui-ai-connection-unix-socket.md) | proposed | LinuxではGUIの検討操作を本人専用ランタイムディレクトリのUnixソケットで中継する |
 
 ## 規約
 

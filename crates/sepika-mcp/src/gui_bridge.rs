@@ -5,13 +5,13 @@ use rmcp::{
     tool, tool_handler, tool_router, ErrorData, ServerHandler, ServiceExt,
 };
 use sepika_ai_connection::{
-    pipe,
+    endpoint,
     protocol::{read_frame, write_frame, Request, Response},
 };
 use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
-use tokio::{io::BufReader, net::windows::named_pipe::NamedPipeClient, sync::Mutex};
+use tokio::{io::BufReader, sync::Mutex};
 
 #[derive(Deserialize, schemars::JsonSchema)]
 pub struct GuiRequest {
@@ -21,14 +21,12 @@ pub struct GuiRequest {
 #[derive(Clone)]
 pub struct GuiBridge {
     pipe: String,
-    client: Arc<Mutex<Option<BufReader<NamedPipeClient>>>>,
+    client: Arc<Mutex<Option<BufReader<endpoint::Client>>>>,
 }
 impl GuiBridge {
     pub fn new(pipe: String) -> Result<Self, String> {
-        if !pipe.starts_with(r"\\.\pipe\sepika-gui-")
-            || pipe[r"\\.\pipe\sepika-gui-".len()..].contains(['\\', '/'])
-        {
-            return Err("GUIが表示したローカルSEPIKAパイプを指定してください".into());
+        if !endpoint::is_gui_endpoint(&pipe) {
+            return Err("GUIが表示したローカルSEPIKA接続先を指定してください".into());
         }
         Ok(Self {
             pipe,
@@ -49,9 +47,9 @@ impl GuiBridge {
             .map_err(|e| ErrorData::invalid_params(e.to_string(), None))?;
         let mut client = self.client.lock().await;
         if client.is_none() {
-            *client = Some(BufReader::new(pipe::connect(&self.pipe).map_err(|e| {
-                ErrorData::internal_error(format!("GUIに接続できません: {e}"), None)
-            })?));
+            *client = Some(BufReader::new(endpoint::connect(&self.pipe).map_err(
+                |e| ErrorData::internal_error(format!("GUIに接続できません: {e}"), None),
+            )?));
         }
         let stream = client.as_mut().unwrap();
         let result = async {

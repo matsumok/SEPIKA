@@ -1,5 +1,5 @@
 use sepika_core::model::Model;
-#[cfg(all(windows, feature = "mcp"))]
+#[cfg(feature = "mcp")]
 pub mod gui_bridge;
 use sepika_edit::UndoStack;
 use sepika_io::results::ResultStore;

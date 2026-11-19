@@ -1,5 +1,5 @@
 use crate::{
-    pipe,
+    endpoint,
     protocol::{read_frame, write_frame, Request, Response},
 };
 use std::{io, sync::mpsc};
@@ -28,7 +28,7 @@ impl Drop for Listener {
 }
 impl Listener {
     pub fn start() -> io::Result<Self> {
-        let name = format!(r"\\.\pipe\sepika-gui-{}", uuid::Uuid::new_v4());
+        let name = endpoint::new_name()?;
         let (events_tx, events) = mpsc::channel();
         let (ready_tx, ready_rx) = mpsc::sync_channel(1);
         let (stop, stopped) = oneshot::channel();
@@ -42,13 +42,12 @@ impl Listener {
                 }
             };
             runtime.block_on(async move {
-                let server = match pipe::create(&endpoint) { Ok(s)=>s, Err(e)=> { let _=ready_tx.send(Err(e)); return; } };
+                let server = match endpoint::create(&endpoint) { Ok(s)=>s, Err(e)=> { let _=ready_tx.send(Err(e)); return; } };
                 let _=ready_tx.send(Ok(()));
                 tokio::select! { _ = stopped => {}, _ = async move {
-                    let mut server = server;
                     let connection = uuid::Uuid::new_v4().to_string();
-                    if server.connect().await.is_ok() {
-                        let (read,mut write)=tokio::io::split(&mut server);
+                    if let Ok(mut stream) = endpoint::accept(server).await {
+                        let (read,mut write)=tokio::io::split(&mut stream);
                         let mut reader=BufReader::new(read);
                         loop {
                             let request = match read_frame::<Request>(&mut reader).await {
@@ -66,7 +65,6 @@ impl Listener {
                         drop(reader);
                         drop(write);
                     }
-                    drop(server);
                     let _=events_tx.send(Event::Disconnected(connection));
                 } => {} }
             });
@@ -96,7 +94,7 @@ mod tests {
             let name = listener.name.clone();
             assert_ne!(previous.as_ref(), Some(&name));
             if let Some(previous) = &previous {
-                assert!(pipe::connect(previous).is_err());
+                assert!(endpoint::connect(previous).is_err());
             }
             let worker = std::thread::spawn(move || {
                 let mut connection = None;
@@ -131,7 +129,7 @@ mod tests {
                 };
                 assert_eq!(Some(disconnected), connection);
             });
-            let mut stream = BufReader::new(pipe::connect(&name).unwrap());
+            let mut stream = BufReader::new(endpoint::connect(&name).unwrap());
             for sequence in 0..3 {
                 let id = format!("client-{client}-request-{sequence}");
                 let request = serde_json::from_value::<Request>(
@@ -157,7 +155,7 @@ mod tests {
             tokio::task::spawn_blocking(move || worker.join().unwrap())
                 .await
                 .unwrap();
-            assert!(pipe::connect(&name).is_err());
+            assert!(endpoint::connect(&name).is_err());
             previous = Some(name);
         }
     }

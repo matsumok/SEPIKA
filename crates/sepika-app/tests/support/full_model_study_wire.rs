@@ -1,16 +1,15 @@
 use super::*;
 use sepika_ai_connection::{
-    pipe,
+    endpoint,
     protocol::{read_frame, write_frame, Request, Response},
 };
 use sepika_app::app::study::ai::Mode;
 use serde_json::{json, Value};
 use tokio::io::BufReader;
-use tokio::net::windows::named_pipe::NamedPipeClient;
 
 async fn exchange(
     app: &mut App,
-    reader: &mut BufReader<NamedPipeClient>,
+    reader: &mut BufReader<endpoint::Client>,
     request: &Request,
 ) -> Response {
     write_frame(reader.get_mut(), request).await.unwrap();
@@ -77,7 +76,7 @@ fn representative_real_pipe_matches_manual_inputs_checks_quantity_and_displaceme
         .unwrap();
     let endpoint = app.enable_ai_connection().unwrap();
     tokio::runtime::Runtime::new().unwrap().block_on(async {
-        let mut reader=BufReader::new(pipe::connect(&endpoint).unwrap());
+        let mut reader=BufReader::new(endpoint::connect(&endpoint).unwrap());
         let connect:Request=serde_json::from_value(json!({"version":1,"id":"issue985-connect","operation":"connect"})).unwrap();
         assert_eq!(accepted(exchange(&mut app,&mut reader,&connect).await)["status"],"awaiting_gui_approval");
         app.approve_ai_connection(s,Mode::Comparison,true).unwrap();
@@ -172,7 +171,7 @@ fn representative_real_pipe_matches_manual_inputs_checks_quantity_and_displaceme
         assert!(app.studies.items[s].runs.last().unwrap().error.is_none());
         assert!(app.ai_connection.permission.is_none());
         let review_endpoint=app.enable_ai_connection().unwrap();
-        let mut reader=BufReader::new(pipe::connect(&review_endpoint).unwrap());
+        let mut reader=BufReader::new(endpoint::connect(&review_endpoint).unwrap());
         assert_eq!(accepted(exchange(&mut app,&mut reader,&connect).await)["status"],"awaiting_gui_approval");
         app.approve_ai_connection(s,Mode::Review,true).unwrap();
         let review=accepted(exchange(&mut app,&mut reader,&connect).await);
